@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Caro | Game</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      :root {
+        --blue: #65b5ea;
+        --red: #dc1f26;
+        --orange: #ff6700;
+      }
+
+      .container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .nav {
+        margin-top: 30px;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 0 200px;
+      }
+
+      .back-btn {
+        padding: 5px;
+        border-radius: 5px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .back-btn:hover {
+        cursor: pointer;
+      }
+
+      .content {
+        margin-top: 50px;
+        display: flex;
+        justify-content: space-between;
+        padding: 0 200px;
+        flex-wrap: wrap;
+        gap: 30px;
+      }
+
+      .content .game {
+        background-color: var(--blue);
+      }
+
+      .content .history {
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+      }
+
+      table {
+        border-collapse: collapse;
+        background-color: #f7f9fc;
+        border: 1px solid #000;
+      }
+      thead th {
+        background-color: var(--blue);
+        color: #ffffff;
+        text-transform: uppercase;
+        padding: 12px 15px;
+        text-align: left;
+        position: sticky;
+        top: 0; /* Giữ cố định phần thead */
+        z-index: 1; /* Đảm bảo thead nằm trên tbody */
+      }
+      tbody td {
+        padding: 12px 15px;
+        text-align: left;
+      }
+      tr:nth-child(even) {
+        background-color: #e9f5ff;
+      }
+      tr:nth-child(odd) {
+        background-color: #ffffff;
+      }
+      tr:hover {
+        background-color: #d0e7ff;
+        cursor: pointer;
+      }
+
+      /* Độ rộng của từng cột */
+      th:nth-child(1),
+      td:nth-child(1) {
+        text-align: center;
+      }
+      th:nth-child(2),
+      td:nth-child(2) {
+        width: 150px; /* Cột Title */
+      }
+      th:nth-child(3),
+      td:nth-child(3) {
+        width: 200px; /* Cột Time */
+      }
+
+      /* Đặt chiều cao tối đa và cuộn nếu cần */
+      .table-container {
+        max-height: 400px; /* Chiều cao tối đa */
+        overflow-y: auto; /* Cuộn dọc */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <nav class="nav">
+        <div class="nav-title">
+          <h1 class="turn-title"></h1>
+          <h2 class="current-title">Current: X</h2>
+          <h2 class="next-title">Next: O</h2>
+        </div>
+        <button class="back-btn">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            x="0px"
+            y="0px"
+            width="30"
+            height="30"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M 12 2 A 1 1 0 0 0 11.289062 2.296875 L 1.203125 11.097656 A 0.5 0.5 0 0 0 1 11.5 A 0.5 0.5 0 0 0 1.5 12 L 4 12 L 4 20 C 4 20.552 4.448 21 5 21 L 9 21 C 9.552 21 10 20.552 10 20 L 10 14 L 14 14 L 14 20 C 14 20.552 14.448 21 15 21 L 19 21 C 19.552 21 20 20.552 20 20 L 20 12 L 22.5 12 A 0.5 0.5 0 0 0 23 11.5 A 0.5 0.5 0 0 0 22.796875 11.097656 L 12.716797 2.3027344 A 1 1 0 0 0 12.710938 2.296875 A 1 1 0 0 0 12 2 z"
+            ></path>
+          </svg>
+        </button>
+      </nav>
+      <div class="content">
+        <canvas class="game"></canvas>
+        <div class="history">
+          <h1>Match History</h1>
+          <div class="table-container">
+            <table class="history-table">
+              <thead>
+                <tr>
+                  <th>Order</th>
+                  <th>Title</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const canvas = document.querySelector(".game");
+      const ctx = canvas.getContext("2d");
+      const turnTitle = document.querySelector(".turn-title");
+      const currentTitle = document.querySelector(".current-title");
+      const nextTitle = document.querySelector(".next-title");
+      const backBtn = document.querySelector(".back-btn");
+      const historyContainer = document.querySelector(".table-container");
+      const historyTable = document.querySelector(".history-table tbody");
+
+      const matchHistory = [];
+      let turn = 1;
+      let cols = 10;
+      let rows = 10;
+      const boardSize = 500;
+      const winCondition = 5;
+      let cellSize = boardSize / cols;
+      let board = Array.from({ length: rows }, () => {
+        return Array(cols).fill(null);
+      });
+
+      canvas.width = boardSize;
+      canvas.height = boardSize;
+
+      const setTitle = () => {
+        turnTitle.textContent = `Turn: ${turn}`;
+        currentTitle.textContent = `Current: ${turn % 2 === 0 ? "O" : "X"}`;
+        nextTitle.textContent = `Next: ${turn % 2 === 0 ? "X" : "O"}`;
+      };
+
+      const drawBoard = () => {
+        ctx.strokeStyle = "white";
+
+        for (let i = 0; i <= rows; ++i) {
+          // Draw x line
+          ctx.beginPath();
+          ctx.moveTo(0, i * cellSize);
+          ctx.lineTo(boardSize, i * cellSize);
+          ctx.stroke();
+
+          // Draw y line
+          ctx.beginPath();
+          ctx.moveTo(i * cellSize, 0);
+          ctx.lineTo(i * cellSize, boardSize);
+          ctx.stroke();
+        }
+      };
+
+      const drawSymbol = (x, y, symbol) => {
+        ctx.fillStyle = turn % 2 === 0 ? "#dc1f26" : "#ff6700";
+        ctx.font = `30px Arial`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(symbol, x + cellSize / 2, y + cellSize / 2);
+      };
+
+      const checkWinner = (board) => {
+        const checkDirection = (
+          row,
+          col,
+          rowDirection,
+          colDirection,
+          player
+        ) => {
+          let count = 0;
+
+          for (let i = 0; i < winCondition; i++) {
+            const r = row + i * rowDirection;
+            const c = col + i * colDirection;
+
+            if (
+              r >= 0 &&
+              r < rows &&
+              c >= 0 &&
+              c < cols &&
+              board[r][c] === player
+            ) {
+              count++;
+            } else {
+              break;
+            }
+          }
+
+          return count === winCondition;
+        };
+
+        for (let row = 0; row < rows; row++) {
+          for (let col = 0; col < cols; col++) {
+            const player = board[row][col];
+
+            if (player) {
+              if (
+                checkDirection(row, col, 0, 1, player) ||
+                checkDirection(row, col, 1, 0, player) ||
+                checkDirection(row, col, 1, 1, player) ||
+                checkDirection(row, col, 1, -1, player)
+              ) {
+                return player;
+              }
+            }
+          }
+        }
+
+        return null;
+      };
+
+      const checkisDraw = (board) => {
+        for (let row = 0; row < board.length; row++) {
+          for (let col = 0; col < board[row].length; col++) {
+            if (board[row][col] === null) {
+              return false;
+            }
+          }
+        }
+
+        return true;
+      };
+
+      const loadHistory = () => {
+        const historySave = JSON.parse(localStorage.getItem("history"));
+        let tableContent = ``;
+
+        if (!historySave) {
+          historyContainer.innerHTML = "<span>No history available</span>";
+
+          return;
+        }
+
+        historySave.forEach((h) => {
+          matchHistory.push(h);
+
+          tableContent += `
+            <tr>
+                <td>${h.order}</td>
+                <td>${h.title}</td>
+                <td>${formatTime(h.time)}</td>
+            </tr>
+          `;
+        });
+
+        historyTable.innerHTML = tableContent;
+      };
+
+      const saveHistory = (winner) => {
+        const newHistory = {
+          order: matchHistory.length + 1,
+          title: winner === "Draw" ? "Draw" : `Player ${winner} win`,
+          time: new Date().toISOString(),
+        };
+
+        matchHistory.push(newHistory);
+
+        localStorage.setItem("history", JSON.stringify(matchHistory));
+      };
+
+      const checkGameState = (board) => {
+        const winner = checkWinner(board);
+
+        if (winner) {
+          alert(`Winner: ${winner}`);
+          saveHistory(winner);
+          window.location.reload();
+        }
+
+        if (checkisDraw(board)) {
+          alert(`Draw`);
+          saveHistory("Draw");
+          window.location.reload();
+        }
+      };
+
+      const formatTime = (isoString) => {
+        const date = new Date(isoString);
+
+        // Lấy các thành phần ngày, tháng, năm, giờ, phút, giây
+        const day = String(date.getDate()).padStart(2, "0"); // Lấy ngày, đảm bảo 2 chữ số
+        const month = String(date.getMonth() + 1).padStart(2, "0"); // Tháng +1, đảm bảo 2 chữ số
+        const year = date.getFullYear(); // Lấy năm
+        const hours = String(date.getHours()).padStart(2, "0"); // Lấy giờ, đảm bảo 2 chữ số
+        const minutes = String(date.getMinutes()).padStart(2, "0"); // Lấy phút, đảm bảo 2 chữ số
+        const seconds = String(date.getSeconds()).padStart(2, "0"); // Lấy giây, đảm bảo 2 chữ số
+
+        // Ghép các phần lại theo định dạng dd/mm/yyyy hh:mm:ss
+        return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+      };
+
+      setTitle();
+      loadHistory();
+      drawBoard();
+
+      canvas.addEventListener("click", (e) => {
+        const rect = canvas.getBoundingClientRect();
+
+        const x = Math.floor((e.x - rect.x) / cellSize);
+        const y = Math.floor((e.y - rect.y) / cellSize);
+
+        if (!board[y][x]) {
+          const currentSymbol = turn % 2 === 0 ? "O" : "X";
+          board[y][x] = currentSymbol;
+          turn++;
+
+          setTitle();
+          drawSymbol(x * cellSize, y * cellSize, currentSymbol);
+          checkGameState(board);
+        }
+      });
+
+      backBtn.addEventListener("click", () => {
+        window.location.href = "./menu.html";
+      });
+    </script>
+  </body>
+</html>

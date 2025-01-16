@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Caro | Menu</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      }
+
+      :root {
+        --blue: #65b5ea;
+        --red: #dc1f26;
+        --orange: #ff6700;
+      }
+
+      .container {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 30px;
+      }
+
+      .container img {
+        width: 150px;
+        border: 1px solid #000;
+      }
+
+      .play-btn {
+        font-weight: bold;
+        font-size: 2rem;
+        background: none;
+        border: none;
+        color: var(--blue);
+      }
+
+      .play-btn:hover {
+        color: var(--orange);
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <img src="./assets/caro.png" alt="logo" />
+      <button class="play-btn">PLAY GAME</button>
+    </div>
+    <script>
+      const playBtn = document.querySelector(".play-btn");
+
+      playBtn.addEventListener("click", () => {
+        window.location.href = "./game.html";
+      });
+    </script>
+  </body>
+</html>
