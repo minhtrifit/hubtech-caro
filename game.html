@@ -315,13 +315,85 @@
         localStorage.setItem("history", JSON.stringify(matchHistory));
       };
 
+      const drawWinLine = (ctx, winCells, cellSize, winner) => {
+        // Duyệt qua các ô chiến thắng và vẽ lại chúng với màu mới
+        winCells.forEach(([row, col]) => {
+          const x = col * cellSize;
+          const y = row * cellSize;
+          ctx.fillStyle = "#1c9153"; // Đặt màu nền của ô chiến thắng
+          ctx.fillRect(x, y, cellSize, cellSize); // Vẽ lại ô
+
+          ctx.fillStyle = "white"; // Đặt màu nền của ô chiến thắng
+          ctx.font = `30px Arial`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(winner, x + cellSize / 2, y + cellSize / 2);
+        });
+      };
+
+      const changeWinLineColor = (board, ctx, cellSize, winner) => {
+        const directions = [
+          { dRow: 0, dCol: 1 }, // Dọc
+          { dRow: 1, dCol: 0 }, // Ngang
+          { dRow: 1, dCol: 1 }, // Chéo phải
+          { dRow: 1, dCol: -1 }, // Chéo trái
+        ];
+
+        for (let row = 0; row < board.length; row++) {
+          for (let col = 0; col < board[0].length; col++) {
+            if (board[row][col] === winner) {
+              for (const { dRow, dCol } of directions) {
+                const winCells = checkWinDirection(
+                  board,
+                  row,
+                  col,
+                  dRow,
+                  dCol,
+                  winner
+                );
+                if (winCells) {
+                  drawWinLine(ctx, winCells, cellSize, winner); // Vẽ lại đường chiến thắng
+                  return; // Dừng tìm kiếm nếu đã có đường chiến thắng
+                }
+              }
+            }
+          }
+        }
+      };
+
+      // Hàm kiểm tra một hướng có đường chiến thắng hay không
+      function checkWinDirection(board, row, col, dRow, dCol, player) {
+        const winCells = [];
+        let r = row,
+          c = col;
+
+        for (let i = 0; i < 5; i++) {
+          if (
+            r < 0 ||
+            r >= board.length ||
+            c < 0 ||
+            c >= board[0].length ||
+            board[r][c] !== player
+          ) {
+            return null; // Nếu có ô không hợp lệ, trả về null
+          }
+          winCells.push([r, c]);
+          r += dRow;
+          c += dCol;
+        }
+
+        return winCells; // Trả về các ô tạo thành đường chiến thắng
+      }
+
       const checkGameState = (board) => {
         const winner = checkWinner(board);
 
         if (winner) {
-          alert(`Winner: ${winner}`);
+          changeWinLineColor(board, ctx, cellSize, winner);
           saveHistory(winner);
-          window.location.reload();
+          alert(`Winner: ${winner}`);
+          loadHistory();
+          // window.location.reload();
         }
 
         if (checkisDraw(board)) {
