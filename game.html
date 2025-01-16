@@ -180,6 +180,7 @@
       let board = Array.from({ length: rows }, () => {
         return Array(cols).fill(null);
       });
+      let winner;
 
       canvas.width = boardSize;
       canvas.height = boardSize;
@@ -386,14 +387,13 @@
       }
 
       const checkGameState = (board) => {
-        const winner = checkWinner(board);
+        winner = checkWinner(board);
 
         if (winner) {
           changeWinLineColor(board, ctx, cellSize, winner);
           saveHistory(winner);
           alert(`Winner: ${winner}`);
           loadHistory();
-          // window.location.reload();
         }
 
         if (checkisDraw(board)) {
@@ -428,7 +428,12 @@
         const x = Math.floor((e.x - rect.x) / cellSize);
         const y = Math.floor((e.y - rect.y) / cellSize);
 
-        if (!board[y][x]) {
+        if (winner) {
+          confirm("Start a new game");
+          window.location.reload();
+        }
+
+        if (!board[y][x] && !winner) {
           const currentSymbol = turn % 2 === 0 ? "O" : "X";
           board[y][x] = currentSymbol;
           turn++;
